@@ -1,0 +1,8 @@
+Kriteria 1: Menggunakan Salah Satu dari Dataset yang Telah Disediakan
+Pada proyek ini, Anda harus melakukan proses analisis menggunakan salah satu dari beberapa dataset berikut.
+
+Bike Sharing Dataset (Sumber)
+E-Commerce Public Dataset (Sumber)
+Air Quality Dataset (Sumber)
+
+Catatan: Saya sudah menggunakan dataset Air Quality Dataset, terletak di folder data/

@@ -1,0 +1,5 @@
+Kriteria 2: Melakukan Seluruh Proses Analisis Data
+Mirip seperti berbagai materi latihan yang telah dibahas sebelumnya, Anda harus melakukan seluruh proses analisis data mulai dari mendefinisikan pertanyaan hingga membuat kesimpulan dari hasil analisis. Selain itu, proyek analisis data yang Anda buat harus memenuhi ketentuan berikut.
+
+Minimal terdapat 2 buah pertanyaan bisnis (pertanyaan analisis) yang ingin dijawab melalui proses analisis data. Pertanyaan tersebut haruslah efektif sesuai dengan materi Mendefinisikan Pertanyaan Untuk Explorasi Data.
+Minimal terdapat 2 buah visualisasi data untuk menjawab pertanyaan bisnis yang telah dibuat.

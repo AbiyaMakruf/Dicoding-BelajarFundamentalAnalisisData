@@ -1,0 +1,19 @@
+Submission Anda akan dinilai oleh Reviewer guna menentukan kebenaran submission yang dikerjakan. Supaya bisa lulus dari kelas ini, proyek Anda mesti memenuhi seluruh kriteria yang ada. Apabila ada ketentuan dalam kriteria yang belum terpenuhi, proyek Anda akan kami tolak.
+
+Submission Anda akan dinilai oleh Reviewer dengan penilaian bintang berskala 1-5. Untuk mendapatkan nilai tinggi, Anda bisa menerapkan beberapa saran berikut:
+
+Memberikan dokumentasi menggunakan markdown/text cell pada notebook (.ipynb) untuk menjelaskan setiap tahapan analisis data. 
+Membuat visualisasi data yang baik dan efektif dengan menerapkan prinsip desain dan integritas.
+Deploy dashboard ke dalam streamlit cloud.
+Menerapkan teknik analisis lanjutan seperti RFM analysis, geospatial analysis, clustering, dll. (Tanpa menggunakan algoritma machine learning).
+Catatan: Pastikan teknik analisis lanjutan yang dilakukan relevan dengan dataset yang digunakan.
+RFM Analysis, bertujuan mengelompokkan pelanggan berdasarkan perilaku pembelian mereka dengan memperhatikan tiga faktor utama:
+Recency: Menghitung jumlah hari sejak terakhir kali pelanggan melakukan pembelian.
+Frequency: Menghitung jumlah total transaksi yang dilakukan oleh pelanggan dalam periode tertentu.
+Monetary: Menghitung total pengeluaran pelanggan dalam periode tersebut.
+Anda dapat melihat contoh implementasi kodenya pada submodul Latihan Membuat Visualisasi Data.
+Geospatial Analysis, bertujuan menganalisis data berdasarkan lokasi geografis untuk mengidentifikasi tren atau pola tertentu di suatu wilayah. Anda bisa menggunakan package seperti GeoPandas atau folium untuk membuat peta yang menampilkan distribusi data berdasarkan lokasi.
+Clustering, bertujuan mengelompokkan data ke dalam grup berdasarkan karakteristik tertentu tanpa menggunakan algoritma machine learning. Berikut adalah beberapa metode clustering yang bisa diterapkan:
+Manual Grouping: Menentukan kriteria pengelompokan berdasarkan aturan bisnis atau pemahaman domain, seperti mengelompokkan pelanggan berdasarkan rentang usia, pendapatan, atau jumlah transaksi.
+Binning: Menggunakan teknik binning untuk membagi data ke dalam interval atau kategori tertentu.
+Berikut adalah detail penilaian submission:

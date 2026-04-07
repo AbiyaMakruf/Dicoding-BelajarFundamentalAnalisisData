@@ -1,0 +1,4 @@
+Kriteria 4: Membuat Dashboard Sederhana Menggunakan Streamlit
+Setelah melakukan proses analisis, selanjutnya Anda wajib membuat dashboard sebagai media untuk menyampaikan hasil analisis data secara interaktif. Pada proyek ini, Anda dapat membuat dashboard dengan streamlit mirip seperti materi latihan sebelumnya. Selain itu, pastikan bahwa dashboard Anda buat dapat berjalan dengan lancar di local.
+
+Catatan: saya sudah buat didalam folder dashboard/

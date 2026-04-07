@@ -1,0 +1,4 @@
+Kriteria 3: Proses Analisis Dibuat dalam Notebook yang Rapi
+Pada submission ini, Anda harus mengerjakan proyek analisis data menggunakan templat proyek yang telah disediakan. Tujuannya supaya proyek yang dibuat terdokumentasi dengan rapi. Templat yang dimaksud dapat diakses pada tautan berikut: templat notebook.
+
+Catatan: Notebook dengan nama file Proyek_Analisis_Data.ipynb sudah menggunakan template notebook yang diminta.
