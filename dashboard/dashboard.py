@@ -1,133 +1,314 @@
-# NAMA  : Muhammad Abiya Makruf
-# Username  : abiyamf
+from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
 
-sns.set(style='dark')
 
-# Helper functions untuk membuat dataframe baru
-def create_rain_frequency_df(df):
-    rain_frequency = df.groupby(['year', 'month'])['RAIN'].sum().reset_index()
-    return rain_frequency
+st.set_page_config(
+    page_title="Air Quality Dashboard",
+    page_icon=":bar_chart:",
+    layout="wide",
+)
 
-# Helper functions untuk membuat dataframe baru
-def create_temp_summary_df(df):
-    temp_summary = df.groupby(['year', 'month'])['TEMP'].agg(['min', 'max']).reset_index()
-    temp_summary['max'] = temp_summary['max'].round(2)
-    return temp_summary
+sns.set_theme(style="whitegrid", palette="deep")
 
-# Load data
-df = pd.read_csv('all_data.csv')
+BASE_DIR = Path(__file__).resolve().parent.parent
+DASHBOARD_DIR = Path(__file__).resolve().parent
+CLEAN_DATA_PATH = DASHBOARD_DIR / "all_data.csv"
+RAW_DATA_PATH = BASE_DIR / "data" / "PRSA_Data_Aotizhongxin_20130301-20170228.csv"
 
-# Membuat sidebar
-dfCopy = df.copy()
-dfCopy['year'] = pd.to_datetime(df['year'], format='%Y')
+NUMERIC_COLUMNS = [
+    "PM2.5",
+    "PM10",
+    "SO2",
+    "NO2",
+    "CO",
+    "O3",
+    "TEMP",
+    "PRES",
+    "DEWP",
+    "RAIN",
+    "WSPM",
+]
 
-min_date = dfCopy["year"].min()
-max_date = dfCopy["year"].max()
-min_year = min_date.year
-max_year = max_date.year
+POLLUTION_LABELS = [
+    "Baik",
+    "Sedang",
+    "Tidak Sehat untuk Sensitif",
+    "Tidak Sehat",
+    "Sangat Tidak Sehat",
+]
 
-with st.sidebar:
-    # Menambahkan logo perusahaan
-    st.image("https://i.ibb.co/PDRjwTK/1-Converted-01.png")
+SEASON_MAP = {
+    12: "Winter",
+    1: "Winter",
+    2: "Winter",
+    3: "Spring",
+    4: "Spring",
+    5: "Spring",
+    6: "Summer",
+    7: "Summer",
+    8: "Summer",
+    9: "Autumn",
+    10: "Autumn",
+    11: "Autumn",
+}
 
-    # # Mengambil start_date & end_date dari date_input
-    # start_date, end_date = st.date_input(
-    #     label='Rentang Waktu',min_value=min_date,
-    #     max_value=max_date,
-    #     value=[min_date, max_date]
-    # )
 
-    start_year, end_year = st.slider(
-    label='Rentang Tahun',
-    min_value=min_year,
-    max_value=max_year,
-    value=(min_year, max_year)
+@st.cache_data
+def load_data() -> pd.DataFrame:
+    data_path = CLEAN_DATA_PATH if CLEAN_DATA_PATH.exists() else RAW_DATA_PATH
+    df = pd.read_csv(data_path)
+
+    df[NUMERIC_COLUMNS] = df[NUMERIC_COLUMNS].interpolate(limit_direction="both")
+    df["wd"] = df["wd"].fillna(df["wd"].mode()[0])
+    df["datetime"] = pd.to_datetime(df[["year", "month", "day", "hour"]])
+    df["season"] = df["month"].map(SEASON_MAP)
+    df["pollution_category"] = pd.cut(
+        df["PM2.5"],
+        bins=[-1, 35, 75, 115, 150, np.inf],
+        labels=POLLUTION_LABELS,
     )
 
-# Filter Dataset
-main_df = df[(df["year"] >= int(str(start_year)[:4])) & (df["year"] <= int(str(end_year)[:4]))]
+    return df
 
-# Membuat dataframe baru
-rain_frequency_df = create_rain_frequency_df(main_df)
-temp_summary_df = create_temp_summary_df(main_df)
 
-# Judul Dashboard
-st.header('Rain and Temperature Dashboard :sparkles:')
+def filter_data(df: pd.DataFrame, year_range: tuple[int, int], seasons: list[str]) -> pd.DataFrame:
+    filtered = df[df["year"].between(year_range[0], year_range[1])].copy()
+    if seasons:
+        filtered = filtered[filtered["season"].isin(seasons)]
+    return filtered
 
-# Menampilkan visualisasi data untuk rain frequency
-st.subheader('Rain Frequency')
- 
-col1, col2 = st.columns(2)
- 
-with col1:
-    # Mengelompokkan data berdasarkan tahun dan bulan, dan menghitung jumlah hujan setiap bulan untuk setiap tahun
-    rain_frequency = rain_frequency_df.groupby(['year', 'month'])['RAIN'].sum().reset_index()
 
-    # Menemukan bulan dengan jumlah hujan tertinggi untuk setiap tahun
-    most_rainy_month_per_year = rain_frequency.loc[rain_frequency.groupby('year')['RAIN'].idxmax()]
+def build_monthly_weather(df: pd.DataFrame) -> pd.DataFrame:
+    monthly = (
+        df.groupby(["year", "month"], as_index=False)
+        .agg(total_rain=("RAIN", "sum"), avg_temp=("TEMP", "mean"), avg_pm25=("PM2.5", "mean"))
+        .sort_values(["year", "month"])
+    )
+    monthly["avg_temp"] = monthly["avg_temp"].round(2)
+    monthly["avg_pm25"] = monthly["avg_pm25"].round(2)
+    return monthly
 
-    # Add a new column "nomor" to represent the index of the DataFrame
-    most_rainy_month_per_year['nomor'] = most_rainy_month_per_year.index + 1
 
-    # Print result as a table using Streamlit
-    st.write("Most Rainy Month Per Year:")
-    st.dataframe(most_rainy_month_per_year[['nomor', 'year', 'month']])
- 
+def build_season_pollution(df: pd.DataFrame) -> pd.DataFrame:
+    return (
+        df.groupby("season", as_index=False)
+        .agg(avg_pm25=("PM2.5", "mean"), avg_pm10=("PM10", "mean"), avg_rain=("RAIN", "mean"))
+        .round(2)
+    )
 
-# Membuat visualisasi dengan bar plot
-fig, ax = plt.subplots(figsize=(12, 6))
-colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'orange', 'purple', 'lime', 'brown', 'pink']  # Warna yang berbeda untuk setiap bulan
-for i, month in enumerate(range(1, 13)):
-    month_data = rain_frequency_df[rain_frequency_df['month'] == month]
-    ax.bar(month_data['year'], month_data['RAIN'], color=colors[i % len(colors)], label=f'Month {month}')
 
-ax.set_xlabel('Year')
-ax.set_ylabel('Rainfall Count')
-ax.set_title('Monthly Rainfall Count for Each Year')
-ax.set_xticks(rain_frequency_df['year'].unique())
-ax.legend(title='Month', loc='upper left')
-ax.grid(axis='y', linestyle='--', alpha=0.7)
+def build_wind_pollution(df: pd.DataFrame) -> pd.DataFrame:
+    return (
+        df.groupby("wd", as_index=False)
+        .agg(avg_pm25=("PM2.5", "mean"), observations=("wd", "size"))
+        .query("observations >= 500")
+        .sort_values("avg_pm25", ascending=False)
+        .round(2)
+    )
+
+
+def build_yearly_mix(df: pd.DataFrame) -> pd.DataFrame:
+    mix = (
+        df.groupby(["year", "pollution_category"], observed=False)
+        .size()
+        .rename("count")
+        .reset_index()
+    )
+    mix["share_pct"] = (
+        mix["count"] / mix.groupby("year")["count"].transform("sum") * 100
+    ).round(2)
+    return mix
+
+
+df = load_data()
+
+min_year = int(df["year"].min())
+max_year = int(df["year"].max())
+season_options = ["Spring", "Summer", "Autumn", "Winter"]
+
+with st.sidebar:
+    st.title("Filter Dashboard")
+    selected_years = st.slider(
+        "Rentang tahun",
+        min_value=min_year,
+        max_value=max_year,
+        value=(min_year, max_year),
+    )
+    selected_seasons = st.multiselect(
+        "Pilih musim",
+        options=season_options,
+        default=season_options,
+    )
+    st.caption(
+        "Catatan: data tahun 2017 hanya tersedia sampai Februari, sehingga interpretasinya perlu lebih hati-hati."
+    )
+
+main_df = filter_data(df, selected_years, selected_seasons)
+monthly_weather = build_monthly_weather(main_df)
+season_pollution = build_season_pollution(main_df)
+wind_pollution = build_wind_pollution(main_df)
+yearly_mix = build_yearly_mix(main_df)
+
+dominant_category = (
+    main_df["pollution_category"].value_counts().idxmax()
+    if not main_df.empty
+    else "-"
+)
+
+st.title("Dashboard Analisis Kualitas Udara Aotizhongxin")
+st.caption(
+    "Dashboard ini merangkum pola hujan, temperatur, musim, arah angin, dan kategori kualitas udara berbasis PM2.5."
+)
+
+if main_df.empty:
+    st.warning("Filter saat ini tidak menghasilkan data. Ubah rentang tahun atau musim.")
+    st.stop()
+
+col1, col2, col3, col4 = st.columns(4)
+col1.metric("Rata-rata PM2.5", f"{main_df['PM2.5'].mean():.2f}")
+col2.metric("Rata-rata PM10", f"{main_df['PM10'].mean():.2f}")
+col3.metric("Total Curah Hujan", f"{main_df['RAIN'].sum():.1f}")
+col4.metric("Kategori Dominan", str(dominant_category))
+
+st.markdown("### Pertanyaan 1: Pola Hujan dan Temperatur")
+
+fig, axes = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
+sns.lineplot(
+    data=monthly_weather,
+    x="month",
+    y="total_rain",
+    hue="year",
+    marker="o",
+    palette="Blues",
+    ax=axes[0],
+)
+axes[0].set_title("Total Curah Hujan Bulanan per Tahun")
+axes[0].set_xlabel("Bulan")
+axes[0].set_ylabel("Total Curah Hujan")
+axes[0].set_xticks(range(1, 13))
+axes[0].legend(title="Tahun", ncol=3)
+
+sns.lineplot(
+    data=monthly_weather,
+    x="month",
+    y="avg_temp",
+    hue="year",
+    marker="o",
+    palette="flare",
+    ax=axes[1],
+    legend=False,
+)
+axes[1].set_title("Rata-rata Temperatur Bulanan per Tahun")
+axes[1].set_xlabel("Bulan")
+axes[1].set_ylabel("Temperatur Rata-rata")
+axes[1].set_xticks(range(1, 13))
+
 plt.tight_layout()
-
-# Menampilkan plot menggunakan Streamlit
 st.pyplot(fig)
 
-# Menampilkan visualisasi data untuk temp summary
-st.subheader('Temperature')
- 
-col1, col2 = st.columns(2)
- 
-with col1:
-    # Menampilkan data temperatur minimum dan maksimum per bulan untuk setiap tahun
-    st.write('Temperature Summary:')
-    min_temp = temp_summary_df.groupby('year')['min'].min().reset_index()
-    max_temp = temp_summary_df.groupby('year')['max'].max().reset_index()
-    temp_summary = pd.merge(min_temp, max_temp, on='year')
-    temp_summary.columns = ['Year', 'Min Temperature', 'Max Temperature']
-    st.dataframe(temp_summary)
+peak_rain = monthly_weather.loc[monthly_weather.groupby("year")["total_rain"].idxmax()].copy()
+peak_rain["total_rain"] = peak_rain["total_rain"].round(2)
+st.dataframe(
+    peak_rain.rename(
+        columns={"year": "Tahun", "month": "Bulan Puncak Hujan", "total_rain": "Total Curah Hujan"}
+    ),
+    width="stretch",
+)
 
-# Create a figure and axis object
-fig, ax = plt.subplots(figsize=(10, 6))
+st.markdown("### Pertanyaan 2: Musim dan Arah Angin yang Berkaitan dengan Polusi")
 
-# Loop through unique years in the DataFrame
-for year in temp_summary_df['year'].unique():
-    year_data = temp_summary_df[temp_summary_df['year'] == year]
-    ax.scatter(year_data['month'], year_data['min'], label=f'Min Temperature ({year})', marker='o')
-    ax.scatter(year_data['month'], year_data['max'], label=f'Max Temperature ({year})', marker='x')
+col_left, col_right = st.columns(2)
 
-# Set labels and title
-ax.set_xlabel('Month')
-ax.set_ylabel('Temperature (°C)')
-ax.set_title('Min and Max Temperature per Month')
-ax.set_xticks(range(1, 13))
-ax.legend()
-ax.grid(True)
-plt.tight_layout()
+with col_left:
+    fig, ax = plt.subplots(figsize=(7, 5))
+    sns.barplot(
+        data=season_pollution,
+        x="season",
+        y="avg_pm25",
+        order=season_options,
+        color="#d95f02",
+        ax=ax,
+    )
+    ax.set_title("Rata-rata PM2.5 per Musim")
+    ax.set_xlabel("Musim")
+    ax.set_ylabel("Rata-rata PM2.5")
+    st.pyplot(fig)
 
-# Display plot using Streamlit
-st.pyplot(fig)
+with col_right:
+    fig, ax = plt.subplots(figsize=(7, 5))
+    top_wind_pollution = wind_pollution.head(8)
+    sns.barplot(
+        data=top_wind_pollution,
+        x="wd",
+        y="avg_pm25",
+        palette="crest",
+        ax=ax,
+    )
+    ax.set_title("8 Arah Angin dengan PM2.5 Tertinggi")
+    ax.set_xlabel("Arah Angin")
+    ax.set_ylabel("Rata-rata PM2.5")
+    ax.tick_params(axis="x", rotation=45)
+    st.pyplot(fig)
+
+st.dataframe(
+    wind_pollution.head(10).rename(
+        columns={"wd": "Arah Angin", "avg_pm25": "Rata-rata PM2.5", "observations": "Jumlah Observasi"}
+    ),
+    width="stretch",
+)
+
+st.markdown("### Analisis Lanjutan: Manual Grouping / Binning Kategori PM2.5")
+
+category_share = (
+    main_df["pollution_category"].value_counts(normalize=True).mul(100).round(2).reindex(POLLUTION_LABELS)
+)
+category_pivot = (
+    yearly_mix.pivot(index="year", columns="pollution_category", values="share_pct")
+    .reindex(columns=POLLUTION_LABELS)
+    .fillna(0)
+)
+
+col_left, col_right = st.columns(2)
+
+with col_left:
+    fig, ax = plt.subplots(figsize=(7, 5))
+    category_share.reset_index().rename(
+        columns={"index": "pollution_category", "pollution_category": "share_pct"}
+    )
+    category_share.plot(
+        kind="bar",
+        color=["#2a9d8f", "#8ab17d", "#e9c46a", "#f4a261", "#e76f51"],
+        ax=ax,
+    )
+    ax.set_title("Distribusi Kategori PM2.5")
+    ax.set_xlabel("Kategori")
+    ax.set_ylabel("Persentase (%)")
+    ax.tick_params(axis="x", rotation=30)
+    st.pyplot(fig)
+
+with col_right:
+    fig, ax = plt.subplots(figsize=(9, 5))
+    category_pivot.plot(
+        kind="bar",
+        stacked=True,
+        color=["#2a9d8f", "#8ab17d", "#e9c46a", "#f4a261", "#e76f51"],
+        ax=ax,
+    )
+    ax.set_title("Komposisi Kategori PM2.5 per Tahun")
+    ax.set_xlabel("Tahun")
+    ax.set_ylabel("Persentase (%)")
+    ax.legend(title="Kategori", bbox_to_anchor=(1.02, 1), loc="upper left")
+    st.pyplot(fig)
+
+unhealthy_share = category_share.loc[
+    ["Tidak Sehat untuk Sensitif", "Tidak Sehat", "Sangat Tidak Sehat"]
+].sum()
+
+st.info(
+    f"Proporsi gabungan kondisi udara yang berisiko mencapai {unhealthy_share:.2f}% pada filter yang sedang dipilih."
+)
